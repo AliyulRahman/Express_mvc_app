@@ -4,8 +4,8 @@
     "description": "An Express.js MVC app with CORS, EJS, Axios, and middleware.",
     "main": "server.js",
     "scripts": {
-      "start": "node server.js",
-      "dev": "nodemon server.js"
+      "start": "node app.js",
+      "dev": "nodemon app.js"
     },
     "dependencies": {
       "axios": "^1.6.0",
