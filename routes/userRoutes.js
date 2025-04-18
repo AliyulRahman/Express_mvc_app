@@ -9,6 +9,6 @@ const logRoute = require('../libs/Middlewarefunctions/logRoute');
 router.get('/', logRoute, userController.getAllUsers);
 router.post('/', logRoute, validateUser, userController.createUser);
 router.get('/external', logRoute, userController.getExternalUsers);
-router.get('/view', logRoute, userController.renderUsersPage);
+// router.get('/view', logRoute, userController.renderUsersPage);
 
 module.exports = router;
