@@ -1,95 +1,151 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>User Management</title>
-  <link rel="stylesheet" href="/css/users.css" />
+  <title>User List</title>
+  <link rel="stylesheet" href="/css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
+  <h1>Users</h1>
 
-  <h1>User List</h1>
-  <button onclick="fetchUsers()">Refresh Local Users</button>
-  <button onclick="fetchExternalUsers()">Fetch External Users</button>
+  <button onclick="logout()">Logout</button>
 
-  <form id="userForm">
-    <h3>Add New User</h3>
+  <h3>Add New User</h3>
+  <form id="addUserForm">
     <input type="text" id="name" placeholder="Name" required />
     <input type="email" id="email" placeholder="Email" required />
     <button type="submit">Add User</button>
   </form>
 
-  <table id="userTable">
+  <h3>User List</h3>
+  <button onclick="fetchUsers()">Fetch local Users</button>
+  <table>
     <thead>
       <tr>
-        <th>ID</th><th>Name</th><th>Email</th>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
       </tr>
     </thead>
-    <tbody id="userTbody">
-      <% users.forEach(user => { %>
-        <tr>
-          <td><%= user.id %></td>
-          <td><%= user.name || 'N/A' %></td>
-          <td><%= user.email || 'N/A' %></td>
-        </tr>
-      <% }) %>
+    <tbody id="userTableBody">
+      <!-- Users will be dynamically inserted here -->
+    </tbody>
+  </table>
+
+  <h3>External Users (from Reqres)</h3>
+  <button onclick="fetchExternalUsers()">Fetch External Users</button>
+  <table id="externalUserTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+      </tr>
+    </thead>
+    <tbody id="externalUserTableBody">
+      <!-- External users will be dynamically inserted here -->
     </tbody>
   </table>
 
   <script>
-    // Handle form submission
-    document.getElementById('userForm').addEventListener('submit', async function(e) {
+    // Get the token from localStorage
+    const token = localStorage.getItem('token');
+
+    // Logout function
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/';  // Redirect to login page
+    }
+
+    // Fetch users when the page loads
+    async function fetchUsers() {
+      try {
+        // Make the API request to fetch users
+        const response = await axios.get('/api/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`  // Attach token in the header
+          }
+        });
+
+        // Get the users data
+        const users = response.data;
+
+        // Populate the user table
+        const userTableBody = document.getElementById('userTableBody');
+        userTableBody.innerHTML = '';  // Clear the table body
+
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+          `;
+          userTableBody.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        alert('Failed to load users. Please login again.');
+        logout();
+      }
+    }
+
+    // Fetch external users from reqres API
+    async function fetchExternalUsers() {
+      try {
+        // Make the API request to get external users (e.g., from reqres.in)
+        const response = await axios.get('/api/users/external', {
+          headers: {
+            'Authorization': `Bearer ${token}`  // Attach token in the header
+          }
+        });
+
+        // Get the external users data
+        const externalUsers = response.data.data; // Assuming external API response has a 'data' field
+
+        // Populate the external users table
+        const externalUserTableBody = document.getElementById('externalUserTableBody');
+        externalUserTableBody.innerHTML = '';  // Clear the external user table
+
+        externalUsers.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.id}</td>
+            <td>${user.first_name} ${user.last_name}</td>
+            <td>${user.email}</td>
+          `;
+          externalUserTableBody.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Error fetching external users:', err);
+        alert('Failed to fetch external users.');
+      }
+    }
+
+    // Handle new user form submission
+    document.getElementById('addUserForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
 
       try {
-        await axios.post('/api/users', { name, email });
-        fetchUsers(); // refresh user list
-        this.reset();
+        // Send request to create new user
+        const response = await axios.post('/api/users', { name, email }, {
+          headers: {
+            'Authorization': `Bearer ${token}`  // Attach token in the header
+          }
+        });
+
+        // Refresh the users list after adding a new user
+        fetchUsers();
       } catch (err) {
-        alert('Error adding user: ' + err.response.data.message);
+        console.error('Error adding user:', err);
+        alert('Failed to add user.');
       }
     });
 
-    // Fetch local users
-    async function fetchUsers() {
-      try {
-        const res = await axios.get('/api/users');
-        renderTable(res.data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // Fetch external users
-    async function fetchExternalUsers() {
-      try {
-        const res = await axios.get('/api/users/external');
-        const users = res.data.data || res.data; // handle reqres response
-        renderTable(users.map(user => ({
-          id: user.id,
-          name: `${user.first_name} ${user.last_name}`,
-          email: user.email
-        })));
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // Render users into table
-    function renderTable(users) {
-      const tbody = document.getElementById('userTbody');
-      tbody.innerHTML = '';
-      users.forEach(user => {
-        const row = `<tr>
-          <td>${user.id}</td>
-          <td>${user.name || 'N/A'}</td>
-          <td>${user.email || 'N/A'}</td>
-        </tr>`;
-        tbody.innerHTML += row;
-      });
-    }
+    // Load users when the page is loaded
+    window.onload = fetchUsers;
   </script>
-
 </body>
 </html>

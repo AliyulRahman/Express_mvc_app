@@ -2,13 +2,19 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
-const validateUser = require('../libs/Middlewarefunctions/validateUser');
-const logRoute = require('../libs/Middlewarefunctions/logRoute');
+// Middleware to verify JWT token
+const verifyToken = require('../libs/Middlewarefunctions/verifyToken');
 
-// Apply route-level middleware
-router.get('/', logRoute, userController.getAllUsers);
-router.post('/', logRoute, validateUser, userController.createUser);
-router.get('/external', logRoute, userController.getExternalUsers);
-// router.get('/view', logRoute, userController.renderUsersPage);
+// Get all users (protected route)
+router.get('/', verifyToken, userController.getAllUsers);
+
+// Create a new user (protected route)
+router.post('/', verifyToken, userController.createUser);
+
+// Fetch external users (protected route)
+router.get('/external', verifyToken, userController.getExternalUsers);
+
+// Render user page (protected route)
+router.get('/view', verifyToken, userController.renderUsersPage);
 
 module.exports = router;
