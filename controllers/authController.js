@@ -1,34 +1,43 @@
-const jwt = require('jsonwebtoken');
+const User = require('../models/userModel');
+const { generateToken } = require('../libs/Helperfunctions/jwt');
 
-// Hardcoded credentials for authentication
-const HARDCODED_USERS = [
-  {
-    id: 1,
-    email: 'testuser@example.com',
-    password: 'password123' // Hardcoded password
-  },
-  {
-    id: 2,
-    email: 'admin@example.com',
-    password: 'admin123' // Hardcoded password
+exports.renderRegisterPage = (req, res) => {
+  res.render('register');
+};
+
+exports.registerUser = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: 'User already exists' });
+    }
+
+    // Create new user
+    const newUser = new User({
+      name,
+      email,
+      password, // You may hash this in production
+      id: Date.now()
+    });
+
+    await newUser.save();
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error registering user', error: err.message });
   }
-];
+};
 
-// Handle user login
-exports.login = (req, res) => {
+exports.login = async (req, res) => {
   const { email, password } = req.body;
 
-  // Find the user by email
-  const user = HARDCODED_USERS.find(user => user.email === email && user.password === password);
-
+  const user = await User.findOne({ email, password });
   if (!user) {
     return res.status(401).json({ message: 'Invalid email or password' });
   }
 
-  // Generate a JWT token
-  const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-    expiresIn: '1h' // Token expires in 1 hour
-  });
-
+  const token = generateToken(user);
   res.json({ token });
 };

@@ -1,10 +1,12 @@
-let users = [];
+const mongoose = require('mongoose');
 
-module.exports = {
-  getAll: () => users,
-  create: (user) => {
-    const newUser = { id: Date.now(), ...user };
-    users.push(newUser);
-    return newUser;
-  }
-};
+const userSchema = new mongoose.Schema({
+  id: { type: String, required: false },
+  name: { type: String, required: false },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: false }, // optional if not using auth
+}, { timestamps: true });
+
+const User = mongoose.model('users', userSchema);
+
+module.exports = User;
