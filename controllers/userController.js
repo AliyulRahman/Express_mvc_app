@@ -23,6 +23,34 @@ exports.createUser = async (req, res) => {
   }
 };
 
+// Update a user by ID
+exports.updateUser = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const updatedUser = await User.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating user', error: err.message });
+  }
+};
+
+// Delete a user by ID
+exports.deleteUser = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deletedUser = await User.findByIdAndDelete(id);
+    if (!deletedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting user', error: err.message });
+  }
+};
+
 // External API users (unchanged)
 exports.getExternalUsers = async (req, res) => {
   try {

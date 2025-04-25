@@ -10,11 +10,14 @@
 
   <button onclick="logout()">Logout</button>
 
-  <h3>Add New User</h3>
+  <h3>Add / Update User</h3>
   <form id="addUserForm">
+    <input type="hidden" id="userId" />
     <input type="text" id="name" placeholder="Name" required />
     <input type="email" id="email" placeholder="Email" required />
-    <button type="submit">Add User</button>
+    <input type="password" id="password" placeholder="Password" required />
+    <button type="submit">Save</button>
+    <button type="button" onclick="resetForm()">Cancel</button>
   </form>
 
   <h3>User List</h3>
@@ -25,11 +28,11 @@
         <th>ID</th>
         <th>Name</th>
         <th>Email</th>
+        <th>Password</th>
+        <th>Actions</th>
       </tr>
     </thead>
-    <tbody id="userTableBody">
-      <!-- Users will be dynamically inserted here -->
-    </tbody>
+    <tbody id="userTableBody"></tbody>
   </table>
 
   <h3>External Users (from Reqres)</h3>
@@ -42,70 +45,56 @@
         <th>Email</th>
       </tr>
     </thead>
-    <tbody id="externalUserTableBody">
-      <!-- External users will be dynamically inserted here -->
-    </tbody>
+    <tbody id="externalUserTableBody"></tbody>
   </table>
 
   <script>
-    // Get the token from localStorage
     const token = localStorage.getItem('token');
 
-    // Logout function
     function logout() {
       localStorage.removeItem('token');
-      window.location.href = '/';  // Redirect to login page
+      window.location.href = '/';
     }
 
-    // Fetch users when the page loads
     async function fetchUsers() {
       try {
-        // Make the API request to fetch users
         const response = await axios.get('/api/users', {
-          headers: {
-            'Authorization': `Bearer ${token}`  // Attach token in the header
-          }
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        // Get the users data
         const users = response.data;
 
-        // Populate the user table
         const userTableBody = document.getElementById('userTableBody');
-        userTableBody.innerHTML = '';  // Clear the table body
+        userTableBody.innerHTML = '';
 
         users.forEach(user => {
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${user.id}</td>
+            <td>${user._id}</td>
             <td>${user.name}</td>
             <td>${user.email}</td>
+            <td>${user.password || ''}</td>
+            <td>
+              <button onclick="editUser('${user._id}', '${user.name}', '${user.email}', '${user.password || ''}')">Edit</button>
+              <button onclick="deleteUser('${user._id}')">Delete</button>
+            </td>
           `;
           userTableBody.appendChild(row);
         });
       } catch (err) {
-        console.error('Error fetching users:', err);
         alert('Failed to load users. Please login again.');
         logout();
       }
     }
 
-    // Fetch external users from reqres API
     async function fetchExternalUsers() {
       try {
-        // Make the API request to get external users (e.g., from reqres.in)
         const response = await axios.get('/api/users/external', {
-          headers: {
-            'Authorization': `Bearer ${token}`  // Attach token in the header
-          }
+          headers: { Authorization: `Bearer ${token}` }
         });
+        const externalUsers = response.data.data;
 
-        // Get the external users data
-        const externalUsers = response.data.data; // Assuming external API response has a 'data' field
-
-        // Populate the external users table
         const externalUserTableBody = document.getElementById('externalUserTableBody');
-        externalUserTableBody.innerHTML = '';  // Clear the external user table
+        externalUserTableBody.innerHTML = '';
 
         externalUsers.forEach(user => {
           const row = document.createElement('tr');
@@ -117,34 +106,64 @@
           externalUserTableBody.appendChild(row);
         });
       } catch (err) {
-        console.error('Error fetching external users:', err);
         alert('Failed to fetch external users.');
       }
     }
 
-    // Handle new user form submission
-    document.getElementById('addUserForm').addEventListener('submit', async function(e) {
+    document.getElementById('addUserForm').addEventListener('submit', async function (e) {
       e.preventDefault();
+      const id = document.getElementById('userId').value;
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const payload = { name, email, password };
 
       try {
-        // Send request to create new user
-        const response = await axios.post('/api/users', { name, email }, {
-          headers: {
-            'Authorization': `Bearer ${token}`  // Attach token in the header
-          }
-        });
+        if (id) {
+          await axios.put(`/api/users/${id}`, payload, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } else {
+          await axios.post('/api/users', payload, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
 
-        // Refresh the users list after adding a new user
         fetchUsers();
+        resetForm();
       } catch (err) {
-        console.error('Error adding user:', err);
-        alert('Failed to add user.');
+        alert('Error saving user.');
       }
     });
 
-    // Load users when the page is loaded
+    function editUser(id, name, email, password) {
+      document.getElementById('userId').value = id;
+      document.getElementById('name').value = name;
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = password;
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Are you sure you want to delete this user?')) return;
+
+      try {
+        await axios.delete(`/api/users/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchUsers();
+      } catch (err) {
+        alert('Failed to delete user.');
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('userId').value = '';
+      document.getElementById('name').value = '';
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+    }
+
     window.onload = fetchUsers;
   </script>
 </body>

@@ -17,4 +17,7 @@ router.get('/external', verifyToken, userController.getExternalUsers);
 // Render user page (protected route)
 router.get('/view', verifyToken, userController.renderUsersPage);
 
+router.put('/:id',verifyToken, userController.updateUser);
+router.delete('/:id',verifyToken, userController.deleteUser);
+
 module.exports = router;
